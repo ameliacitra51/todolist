@@ -1,11 +1,11 @@
 import { db } from '@/utils/db'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
-type Todo = {
-  id: number
-  text: string
-  completed: boolean
-}
+// type Todo = {
+//   id: number
+//   text: string
+//   completed: boolean
+// }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req
