@@ -1,6 +1,5 @@
 import { db } from '@/utils/db'
 import type { NextApiRequest, NextApiResponse } from 'next'
-import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 
 type Todo = {
   id: number
@@ -13,26 +12,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   switch (method) {
     case 'GET': {
-      const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM todo')
-      const todos = rows as Todo[]
-      res.status(200).json(todos)
+      const { rows } = await db.query('SELECT * FROM todo ORDER BY id DESC')
+      res.status(200).json(rows)
       break
     }
 
     case 'POST': {
       const { text } = req.body
-      const [result] = await db.query<ResultSetHeader>(
-        'INSERT INTO todo (text) VALUES (?)',
-        [text]
+      const insert = await db.query(
+        'INSERT INTO todo (text, completed) VALUES ($1, $2) RETURNING *',
+        [text, false]
       )
-      const insertId = result.insertId
-
-      const [rows] = await db.query<RowDataPacket[]>(
-        'SELECT * FROM todo WHERE id = ?',
-        [insertId]
-      )
-      const newTodo = rows[0] as Todo
-      res.status(201).json(newTodo)
+      res.status(201).json(insert.rows[0])
       break
     }
 
@@ -40,12 +31,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { id, completed, text } = req.body
       try {
         if (text !== undefined) {
-        await db.query('UPDATE todo SET text = ? WHERE id = ?', [text, id])
+          await db.query('UPDATE todo SET text = $1 WHERE id = $2', [text, id])
         }
         if (completed !== undefined) {
-        await db.query('UPDATE todo SET completed = ? WHERE id = ?', [completed, id])
+          await db.query('UPDATE todo SET completed = $1 WHERE id = $2', [completed, id])
         }
-        res.status(200).json({message: "Todo berhasil di update"})
+        res.status(200).json({ message: 'Todo berhasil diupdate' })
       } catch (error) {
         console.error(error)
         res.status(500).json({ error: 'Gagal update todo' })
@@ -55,8 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     case 'DELETE': {
       const { deleteId } = req.body
-      await db.query('DELETE FROM todo WHERE id = ?', [deleteId])
-      res.status(200).json({ message: 'Todo deleted' })
+      await db.query('DELETE FROM todo WHERE id = $1', [deleteId])
+      res.status(200).json({ message: 'Todo berhasil dihapus' })
       break
     }
 
